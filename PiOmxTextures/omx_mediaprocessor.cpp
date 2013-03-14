@@ -210,7 +210,7 @@ bool OMX_MediaProcessor::setFilename(QString filename, OMX_TextureData*& texture
                     m_hints_audio,
                     m_av_clock,
                     &m_omx_reader,
-                    "omx:hdmi",         /* TODO: implement way to change */
+                    "omx:analog",         /* TODO: implement way to change */
                     false,              /* TODO: passthrough */
                     false,              /* TODO: hw decode */
                     false,              /* TODO: downmix boost */

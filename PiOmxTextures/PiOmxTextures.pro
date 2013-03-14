@@ -4,10 +4,14 @@
 # Date:    12.03.2012
 #
 
-QT += core core-private gui gui-private opengl quick quick-private
+QT += core core-private gui gui-private opengl quick quick-private declarative
 
-TARGET   = PiOmxTextures
-TEMPLATE = app
+TARGET   = piomxtexturesplugin
+TEMPLATE = lib
+
+DESTDIR = imports/PiOmxTextures
+OBJECTS_DIR = tmp
+MOC_DIR = tmp
 
 # External
 LIBS += -lopenmaxil -lGLESv2 -lEGL -lbcm_host -lvcos -lrt -lv4l2
@@ -15,7 +19,7 @@ LIBS += -lopenmaxil -lGLESv2 -lEGL -lbcm_host -lvcos -lrt -lv4l2
 # Internal
 # NOTE: I had issues with versions compiled from recent sources.
 LIBS += -L$$_PRO_FILE_PWD_/3rdparty/lib -lavformat -lavcodec -lavutil
-INCLUDEPATH += $$_PRO_FILE_PWD_/3rdparty/lib/include
+INCLUDEPATH += $$_PRO_FILE_PWD_/3rdparty/lib/include /mnt/rasp-pi-rootfs/opt/vc/include/interface/vmcs_host/linux
 # For omxplayer.
 LIBS += -lfreetype -lWFC -lpcre
 INCLUDEPATH += /usr/include/freetype2
@@ -80,7 +84,7 @@ QMAKE_CXXFLAGS += -std=c++0x -D__STDC_CONSTANT_MACROS -D__STDC_LIMIT_MACROS     
 # [1]: part of implementation without omxplayer.
 
 SOURCES += \
-    main.cpp \
+#    main.cpp \
 #    main_ffmpeg.cpp \
 #    main_v4l2.cpp \
 #    main_demux.cpp \
@@ -104,7 +108,8 @@ SOURCES += \
     omx_mediaprocessor.cpp \
 #    omx_videograph.cpp \         # [1]
     omx_wrapper/OMX_Core.cpp \
-    omx_mediaprocessorelement.cpp
+    omx_mediaprocessorelement.cpp \
+    piomxtextureplugin.cpp
 
 SOURCES += \
     omxplayer_lib/Unicode.cpp \
@@ -167,7 +172,8 @@ HEADERS  += \
     omxplayer_lib/DllAvUtil.h \
     omxplayer_lib/DllAvFilter.h \
     omxplayer_lib/DllAvCodec.h \
-    omx_mediaprocessorelement.h
+    omx_mediaprocessorelement.h \
+    piomxtextureplugin.h
 
 HEADERS += \
     omxplayer_lib/Unicode.h \
@@ -196,7 +202,8 @@ OTHER_FILES += \
     changelog.txt \
     tools/compile_ffmpeg.sh \
     tools/extract_aac_stream.sh \
-    tools/extract_h264_stream.sh
+    tools/extract_h264_stream.sh \
+    qmldir
 
 RESOURCES += \
     resources.qrc
