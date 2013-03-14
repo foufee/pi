@@ -36,7 +36,8 @@ OMX_MediaProcessorElement::OMX_MediaProcessorElement(QQuickItem *parent) :
     m_mediaProc(NULL),
     m_texProvider(NULL),
     m_pendingOpen(false),
-    m_textureData(NULL)
+    m_textureData(NULL),
+    m_autoplay(true)
 {
     // I need to set this as a "has-conent" item because I need the updatePaintNode
     // to be invoked.
@@ -75,6 +76,16 @@ void OMX_MediaProcessorElement::setSource(QString source)
 #endif
     m_pendingOpen = true;
     update();
+}
+
+bool OMX_MediaProcessorElement::autoplay()
+{
+    return m_autoplay;
+}
+
+void OMX_MediaProcessorElement::setAutoplay(bool ap)
+{
+    m_autoplay = ap;
 }
 
 QSGNode* OMX_MediaProcessorElement::updatePaintNode(QSGNode*, UpdatePaintNodeData*)
@@ -166,8 +177,8 @@ bool OMX_MediaProcessorElement::openMedia(QString filepath)
     }
     if (!m_mediaProc->setFilename(filepath, m_textureData))
         return false;
-    if (!play())
-        return false;
 
+    if (m_autoplay && !play())
+        return false;
     return true;
 }

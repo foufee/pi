@@ -39,12 +39,16 @@ class OMX_MediaProcessorElement : public QQuickItem
 {
     Q_OBJECT
     Q_PROPERTY(QString source READ source WRITE setSource NOTIFY sourceChanged)
+    Q_PROPERTY(bool autoplay READ autoplay WRITE setAutoplay)
 public:
     explicit OMX_MediaProcessorElement(QQuickItem* parent = 0);
     ~OMX_MediaProcessorElement();
 
     QString source();
     void setSource(QString source);
+
+    bool autoplay();
+    void setAutoplay(bool ap);
 
     OMX_MediaProcessor* mediaProcessor() {
         return m_mediaProc;
@@ -75,6 +79,7 @@ private:
     QString m_source;
     volatile bool m_pendingOpen;
     OMX_TextureData* m_textureData;
+    bool m_autoplay;
 
 private slots:
     void instantiateMediaProcessor();
