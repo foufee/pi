@@ -123,8 +123,9 @@ QStringList OMX_MediaProcessor::streams()
 bool OMX_MediaProcessor::setFilename(QString filename, OMX_TextureData*& textureData)
 {
     QMutexLocker locker(&m_sendCmd);
-    if (!checkCurrentThread())
+    if (!checkCurrentThread()) {
         return false;
+    }
 
     switch (m_state) {
     case STATE_INACTIVE:
@@ -271,13 +272,11 @@ bool OMX_MediaProcessor::stop()
 
     switch (m_state) {
     case STATE_INACTIVE:
+    case STATE_STOPPED:
         return false;
     case STATE_PAUSED:
     case STATE_PLAYING:
-    case STATE_STOPPED:
         break;
-        m_state = STATE_STOPPED;
-        return true;
     default:
         return false;
     }
@@ -346,6 +345,14 @@ bool OMX_MediaProcessor::seek(long /* position */)
 long OMX_MediaProcessor::currentPosition()
 {
     return false;
+}
+
+/*------------------------------------------------------------------------------
+|    OMX_MediaProcessor::textureId
++-----------------------------------------------------------------------------*/
+void OMX_MediaProcessor::setVolume(long vol)
+{
+    m_player_audio->SetCurrentVolume(vol);
 }
 
 /*------------------------------------------------------------------------------

@@ -40,6 +40,7 @@ class OMX_MediaProcessorElement : public QQuickItem
     Q_OBJECT
     Q_PROPERTY(QString source READ source WRITE setSource NOTIFY sourceChanged)
     Q_PROPERTY(bool autoplay READ autoplay WRITE setAutoplay)
+    Q_PROPERTY(int volume READ volume WRITE setVolume)
 public:
     explicit OMX_MediaProcessorElement(QQuickItem* parent = 0);
     ~OMX_MediaProcessorElement();
@@ -49,7 +50,7 @@ public:
 
     bool autoplay();
     void setAutoplay(bool ap);
-
+    int volume();
     OMX_MediaProcessor* mediaProcessor() {
         return m_mediaProc;
     }
@@ -60,6 +61,7 @@ public slots:
     Q_INVOKABLE bool pause();
     Q_INVOKABLE bool seek(long millis);
     Q_INVOKABLE long currentPosition();
+    Q_INVOKABLE bool setVolume(long volume);
 
 signals:
     void textureReady(const OMX_TextureData* textureId);

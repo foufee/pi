@@ -103,11 +103,14 @@ public:
     COMXStreamInfo    m_hints_audio;
     COMXStreamInfo    m_hints_video;
 
+    long volume() { return m_player_audio->GetCurrentVolume(); }
+
 public slots:
     bool play();
     bool stop();
     bool pause();
     bool seek(long position);
+    void setVolume(long vol);
 
 signals:
     void playbackStarted();

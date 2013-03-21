@@ -88,8 +88,14 @@ void OMX_MediaProcessorElement::setAutoplay(bool ap)
     m_autoplay = ap;
 }
 
+int OMX_MediaProcessorElement::volume()
+{
+    return m_mediaProc->volume();
+}
+
 QSGNode* OMX_MediaProcessorElement::updatePaintNode(QSGNode*, UpdatePaintNodeData*)
 {
+    LOG_DEBUG(LOG_TAG, "Thread of rendering: %ld.", QThread::currentThreadId());
 #if 0
     // The item paints nothing on the screen, but still I need this to instantiate
     // all the structures needed to provide the video.
@@ -152,6 +158,13 @@ long OMX_MediaProcessorElement::currentPosition()
     return m_mediaProc->currentPosition();
 }
 
+bool OMX_MediaProcessorElement::setVolume(long volume)
+{
+    CHECK_MEDIA_PROCESSOR;
+    m_mediaProc->setVolume(volume);
+    return true;
+}
+
 void OMX_MediaProcessorElement::instantiateMediaProcessor()
 {
     if (!m_texProvider)
@@ -175,10 +188,11 @@ bool OMX_MediaProcessorElement::openMedia(QString filepath)
         m_textureData->freeData();
         m_textureData = NULL;
     }
+
     if (!m_mediaProc->setFilename(filepath, m_textureData))
         return false;
-
     if (m_autoplay && !play())
         return false;
     return true;
 }
+
