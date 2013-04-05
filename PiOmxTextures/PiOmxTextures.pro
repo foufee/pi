@@ -4,7 +4,7 @@
 # Date:    12.03.2012
 #
 
-QT += core core-private gui gui-private opengl quick quick-private declarative
+QT += core core-private gui gui-private opengl quick quick-private
 
 TARGET   = piomxtexturesplugin
 TEMPLATE = lib
@@ -19,7 +19,7 @@ LIBS += -lopenmaxil -lGLESv2 -lEGL -lbcm_host -lvcos -lrt -lv4l2
 # Internal
 # NOTE: I had issues with versions compiled from recent sources.
 LIBS += -L$$_PRO_FILE_PWD_/3rdparty/lib -lavformat -lavcodec -lavutil
-INCLUDEPATH += $$_PRO_FILE_PWD_/3rdparty/lib/include /mnt/rasp-pi-rootfs/opt/vc/include/interface/vmcs_host/linux
+INCLUDEPATH += $$_PRO_FILE_PWD_/3rdparty/lib/include ~/rasp-pi-rootfs/opt/vc/include/interface/vmcs_host/linux
 # For omxplayer.
 LIBS += -lfreetype -lWFC -lpcre
 INCLUDEPATH += /usr/include/freetype2
@@ -207,3 +207,4 @@ OTHER_FILES += \
 
 RESOURCES += \
     resources.qrc
+
