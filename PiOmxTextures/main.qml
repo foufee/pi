@@ -42,6 +42,8 @@ Rectangle {
             mediaProcessor.pause();
         else if (event.key === Qt.Key_O)
             mediaProcessor.source = "/home/pi/usb/Cars2.mkv";
+        else if (event.key === Qt.Key_K)
+            mediaProcessor.seek(1000);
     }
 
     Timer {
@@ -60,8 +62,16 @@ Rectangle {
         }
     }
 
+    Timer {
+        interval: 5000; running: true; repeat: true
+        onTriggered: {
+            console.log("Position: " + mediaProcessor.streamPosition + ".");
+        }
+    }
+
     OMXMediaProcessor {
         id: mediaProcessor
+        //source: "/home/pi/07 Hail Caesar.mp3"
         source: "/home/pi/usb/Cars2.mkv"
     }
 
@@ -132,7 +142,43 @@ Rectangle {
         }
     }
 
+    /*ShaderEffect {
+            anchors.fill: parent
+
+            // Properties which will be passed into the shader as uniforms
+            property real amplitude: 0.02
+            property real frequency: 20
+            property real time: 0
+
+            NumberAnimation on time {
+                loops: Animation.Infinite
+                from: 0
+                to: Math.PI * 2
+                duration: 600
+            }
+
+            property variant source: ShaderEffectSource {
+                sourceItem: omxVideoSurface
+                hideSource: true
+            }
+
+            fragmentShader: "
+                uniform highp float amplitude;
+                uniform highp float frequency;
+                uniform highp float time;
+                uniform sampler2D source;
+                uniform lowp float qt_Opacity;
+                varying highp vec2 qt_TexCoord0;
+                void main() {
+                    highp vec2 p = sin(time + frequency * qt_TexCoord0);
+                    highp vec2 tc = qt_TexCoord0 + amplitude * vec2(p.y, -p.x);
+                    gl_FragColor = qt_Opacity * texture2D(source, tc);
+                }
+            "
+        }*/
+
     Image {
+        id: imageLogo
         x: 1500
         y: 100
         width: 300

@@ -37,14 +37,28 @@
 
 #include "omx_qthread.h"
 
-// omxplayer lib.
-#include <linux/RBP.h>
-#include <OMXPlayerVideo.h>
-#include <OMXPlayerAudio.h>
-#include <OMXPlayerSubtitles.h>
-#include <DllOMX.h>
-
 using namespace std;
+
+/*------------------------------------------------------------------------------
+|    defintions
++-----------------------------------------------------------------------------*/
+class OMX_TextureData;
+class OMX_TextureProvider;
+class OMXCore;
+class OMXClock;
+class OMXPlayerVideo;
+class OMXPlayerAudio;
+#ifdef ENABLE_SUBTITLES
+class OMXPlayerSubtitles;
+#endif
+class OMXReader;
+class OMXPacket;
+class AVFormatContext;
+class AVStream;
+class AVPacket;
+class CRBP;
+class COMXCore;
+class COMXStreamInfo;
 
 
 /*------------------------------------------------------------------------------
@@ -78,17 +92,14 @@ public:
     QString filename();
     QStringList streams();
 
-    long currentPosition();
+    double streamPosition();
 
     OMX_TextureData* textureData();
 
-    inline bool hasAudio() {
-        return m_has_audio;
-    }
+    bool hasAudio();
+    bool hasVideo();
 
-    inline bool hasVideo() {
-        return m_has_video;
-    }
+    long streamLength();
 
 #ifdef ENABLE_SUBTITLES
     inline bool hasSubtitle() {
@@ -96,12 +107,7 @@ public:
     }
 #endif
 
-    inline OMX_MediaProcessorState state() {
-        return m_state;
-    }
-
-    COMXStreamInfo    m_hints_audio;
-    COMXStreamInfo    m_hints_video;
+    OMX_MediaProcessorState state();
 
     long volume() { return m_player_audio->GetCurrentVolume(); }
 
@@ -125,6 +131,7 @@ private slots:
 
 private:
     void setSpeed(int iSpeed);
+    void flushStreams(double pts);
     bool checkCurrentThread();
 
     OMX_QThread m_thread;
@@ -133,7 +140,7 @@ private:
 
     AVFormatContext* fmt_ctx;
     AVStream* streamVideo;
-    AVPacket pkt;
+    AVPacket* pkt;
 
     volatile OMX_MediaProcessorState m_state;
 
@@ -145,11 +152,11 @@ private:
 #ifdef ENABLE_SUBTITLES
     OMXPlayerSubtitles* m_player_subtitles;
 #endif
-    OMXReader           m_omx_reader;
+    OMXReader*          m_omx_reader;
     OMXPacket*          m_omx_pkt;
 
-    CRBP m_RBP;
-    COMXCore m_OMX;
+    CRBP*     m_RBP;
+    COMXCore* m_OMX;
 
     bool m_bMpeg;
     bool m_has_video;
@@ -168,6 +175,33 @@ private:
 
     QMutex m_mutexPending;
     QWaitCondition m_waitPendingCommand;
+
+    volatile long m_incr;
+
+    COMXStreamInfo* m_hints_audio;
+    COMXStreamInfo* m_hints_video;
 };
+
+
+/*------------------------------------------------------------------------------
+|    OMX_MediaProcessor::hasAudio
++-----------------------------------------------------------------------------*/
+inline bool OMX_MediaProcessor::hasAudio() {
+    return m_has_audio;
+}
+
+/*------------------------------------------------------------------------------
+|    OMX_MediaProcessor::hasVideo
++-----------------------------------------------------------------------------*/
+inline bool OMX_MediaProcessor::hasVideo() {
+    return m_has_video;
+}
+
+/*------------------------------------------------------------------------------
+|    OMX_MediaProcessor::state
++-----------------------------------------------------------------------------*/
+inline OMX_MediaProcessor::OMX_MediaProcessorState OMX_MediaProcessor::state() {
+    return m_state;
+}
 
 #endif // OMX_MEDIAPROCESSOR_H

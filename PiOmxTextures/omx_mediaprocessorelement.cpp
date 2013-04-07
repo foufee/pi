@@ -22,7 +22,7 @@
  */
 
 #include "omx_mediaprocessorelement.h"
-#include "omx_textureproviderqquickitem.h"
+#include "omx_textureprovider.h"
 #include "lgl_logging.h"
 
 #define CHECK_MEDIA_PROCESSOR                                              \
@@ -150,12 +150,6 @@ bool OMX_MediaProcessorElement::seek(long millis)
 {
     CHECK_MEDIA_PROCESSOR;
     return m_mediaProc->seek(millis);
-}
-
-long OMX_MediaProcessorElement::currentPosition()
-{
-    CHECK_MEDIA_PROCESSOR;
-    return m_mediaProc->currentPosition();
 }
 
 bool OMX_MediaProcessorElement::setVolume(long volume)

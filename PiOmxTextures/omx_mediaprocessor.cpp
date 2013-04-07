@@ -32,6 +32,14 @@
 #include "lgl_logging.h"
 #include "omx_mediaprocessor.h"
 
+// omxplayer lib.
+#include "omxplayer_lib/linux/RBP.h"
+#include "omxplayer_lib/OMXPlayerVideo.h"
+#include "omxplayer_lib/OMXPlayerAudio.h"
+#include "omxplayer_lib/OMXPlayerSubtitles.h"
+#include "omxplayer_lib/OMXStreamInfo.h"
+#include "omxplayer_lib/DllOMX.h"
+
 #define ENABLE_HDMI_CLOCK_SYNC false
 #define FONT_PATH              "/usr/share/fonts/truetype/freefont/FreeSans.ttf"
 #define FONT_SIZE              (0.055f)
@@ -44,22 +52,28 @@
 +-----------------------------------------------------------------------------*/
 OMX_MediaProcessor::OMX_MediaProcessor(OMX_TextureProvider* provider) :
     m_state(STATE_INACTIVE),
-    m_omx_pkt(NULL),
-    m_bMpeg(false),
-    m_has_video(false),
-    m_has_audio(false),
 #ifdef ENABLE_SUBTITLES
     m_has_subtitle(false),
 #endif
+    m_omx_reader(new OMXReader),
+    m_omx_pkt(NULL),
+    m_RBP(new CRBP),
+    m_OMX(new COMXCore),
+    m_bMpeg(false),
+    m_has_video(false),
+    m_has_audio(false),
     m_buffer_empty(true),
     m_pendingStop(false),
     m_pendingPause(false),
     m_subtitle_index(0),
     m_audio_index(0),
-    m_provider(provider)
+    m_provider(provider),
+    m_incr(0),
+    m_hints_audio(new COMXStreamInfo),
+    m_hints_video(new COMXStreamInfo)
 {
-    m_RBP.Initialize();
-    m_OMX.Initialize();
+    m_RBP->Initialize();
+    m_OMX->Initialize();
 
     // Players.
     m_av_clock         = new OMXClock;
@@ -79,8 +93,11 @@ OMX_MediaProcessor::OMX_MediaProcessor(OMX_TextureProvider* provider) :
 +-----------------------------------------------------------------------------*/
 OMX_MediaProcessor::~OMX_MediaProcessor()
 {
-    m_OMX.Deinitialize();
-    m_RBP.Deinitialize();
+    m_OMX->Deinitialize();
+    m_RBP->Deinitialize();
+
+    delete m_hints_audio;
+    delete m_hints_video;
 
     delete m_av_clock;
 #ifdef ENABLE_SUBTITLES
@@ -88,6 +105,11 @@ OMX_MediaProcessor::~OMX_MediaProcessor()
 #endif
     delete m_player_audio;
     delete m_player_video;
+
+    delete m_RBP;
+    delete m_OMX;
+    delete m_omx_pkt;
+    delete m_omx_reader;
 
     m_thread.quit();
     m_thread.wait();
@@ -136,17 +158,19 @@ bool OMX_MediaProcessor::setFilename(QString filename, OMX_TextureData*& texture
         return false; // TODO: Reimplement.
     }
 
-    LOG_VERBOSE(LOG_TAG, "Opening video file...");
-    if (!m_omx_reader.Open(filename.toStdString(), true))
+    LOG_VERBOSE(LOG_TAG, "Opening...");
+    if (!m_omx_reader->Open(filename.toStdString(), true)) {
+        LOG_ERROR(LOG_TAG, "Failed to open source.");
         return false;
+    }
 
     m_filename = filename;
 
-    m_bMpeg         = m_omx_reader.IsMpegVideo();
-    m_has_video     = m_omx_reader.VideoStreamCount();
-    m_has_audio     = m_omx_reader.AudioStreamCount();
+    m_bMpeg         = m_omx_reader->IsMpegVideo();
+    m_has_video     = m_omx_reader->VideoStreamCount();
+    m_has_audio     = m_omx_reader->AudioStreamCount();
 #ifdef ENABLE_SUBTITLES
-    m_has_subtitle  = m_omx_reader.SubtitleStreamCount();
+    m_has_subtitle  = m_omx_reader->SubtitleStreamCount();
 #endif
 
     LOG_VERBOSE(LOG_TAG, "Initializing OMX clock...");
@@ -156,27 +180,27 @@ bool OMX_MediaProcessor::setFilename(QString filename, OMX_TextureData*& texture
     if (ENABLE_HDMI_CLOCK_SYNC && !m_av_clock->HDMIClockSync())
         return false;
 
-    m_omx_reader.GetHints(OMXSTREAM_AUDIO, m_hints_audio);
-    m_omx_reader.GetHints(OMXSTREAM_VIDEO, m_hints_video);
+    m_omx_reader->GetHints(OMXSTREAM_AUDIO, *m_hints_audio);
+    m_omx_reader->GetHints(OMXSTREAM_VIDEO, *m_hints_video);
 
     // Set audio stream to use.
     // TODO: Implement a way to change it runtime.
 #if 0
-    m_omx_reader.SetActiveStream(OMXSTREAM_AUDIO, m_audio_index_use);
+    m_omx_reader->SetActiveStream(OMXSTREAM_AUDIO, m_audio_index_use);
 #endif
 
     // Seek on start?
 #if 0
-    if (m_seek_pos !=0 && m_omx_reader.CanSeek()) {
+    if (m_seek_pos !=0 && m_omx_reader->CanSeek()) {
         printf("Seeking start of video to %i seconds\n", m_seek_pos);
-        m_omx_reader.SeekTime(m_seek_pos * 1000.0f, 0, &startpts);  // from seconds to DVD_TIME_BASE
+        m_omx_reader->SeekTime(m_seek_pos * 1000.0f, 0, &startpts);  // from seconds to DVD_TIME_BASE
     }
 #endif
 
-    LOG_VERBOSE(LOG_TAG, "Opening video using OMX...");
-    if (m_has_video)
+    if (m_has_video) {
+        LOG_VERBOSE(LOG_TAG, "Opening video using OMX...");
         if (!m_player_video->Open(
-                    m_hints_video,
+                    *m_hints_video,
                     m_av_clock,
                     textureData,
                     false,                  /* deinterlace */
@@ -186,8 +210,10 @@ bool OMX_MediaProcessor::setFilename(QString filename, OMX_TextureData*& texture
                     1.0                     /* display aspect, unused */
                     ))
             return false;
-    m_textureData = textureData;
-    emit textureReady(textureData);
+
+        m_textureData = textureData;
+        emit textureReady(textureData);
+    }
 
 #ifdef ENABLE_SUBTITLES
     LOG_VERBOSE(LOG_TAG, "Opening subtitles using OMX...");
@@ -199,20 +225,21 @@ bool OMX_MediaProcessor::setFilename(QString filename, OMX_TextureData*& texture
     // index from the user we check to make sure that the value is larger than zero, but
     // we couldn't know without scanning the file if it was too high. If this is the case
     // then we replace the subtitle index with the maximum value possible.
-    if (m_has_subtitle && m_subtitle_index > (m_omx_reader.SubtitleStreamCount() - 1))
-        m_subtitle_index = m_omx_reader.SubtitleStreamCount() - 1;
+    if (m_has_subtitle && m_subtitle_index > (m_omx_reader->SubtitleStreamCount() - 1))
+        m_subtitle_index = m_omx_reader->SubtitleStreamCount() - 1;
 #endif
 
-    m_omx_reader.GetHints(OMXSTREAM_AUDIO, m_hints_audio);
+    m_omx_reader->GetHints(OMXSTREAM_AUDIO, *m_hints_audio);
 
     LOG_VERBOSE(LOG_TAG, "Opening audio using OMX...");
     if (m_has_audio)
         if (!m_player_audio->Open(
-                    m_hints_audio,
+                    *m_hints_audio,
                     m_av_clock,
-                    &m_omx_reader,
+                    m_omx_reader,
                     "omx:analog",         /* TODO: implement way to change */
                     false,              /* TODO: passthrough */
+                    0,                  /* TODO: initial_volume */
                     false,              /* TODO: hw decode */
                     false,              /* TODO: downmix boost */
                     true                /* threaded */
@@ -252,7 +279,7 @@ bool OMX_MediaProcessor::play()
     case STATE_STOPPED: {
         LOG_VERBOSE(LOG_TAG, "Starting thread.");
         m_state = STATE_PLAYING;
-        m_av_clock->OMXStart();
+        m_av_clock->OMXStart(0.0);
         return QMetaObject::invokeMethod(this, "mediaDecoding");
     }
     default:
@@ -334,17 +361,20 @@ bool OMX_MediaProcessor::pause()
 /*------------------------------------------------------------------------------
 |    OMX_MediaProcessor::seek
 +-----------------------------------------------------------------------------*/
-bool OMX_MediaProcessor::seek(long /* position */)
+bool OMX_MediaProcessor::seek(long position)
 {
-    return false;
+    m_incr = 600;
+    return true;
 }
 
 /*------------------------------------------------------------------------------
 |    OMX_MediaProcessor::currentPosition
 +-----------------------------------------------------------------------------*/
-long OMX_MediaProcessor::currentPosition()
+double OMX_MediaProcessor::streamPosition()
 {
-    return false;
+    if (m_av_clock)
+        return m_player_audio->GetCurrentPTS();
+    return -1;
 }
 
 /*------------------------------------------------------------------------------
@@ -387,7 +417,7 @@ void OMX_MediaProcessor::mediaDecoding()
             continue;
         }
 
-#if 0 // TODO: Reimplement?
+#if 1 // TODO: Reimplement?
         if (m_incr != 0 && !m_bMpeg) {
             int    seek_flags   = 0;
             double seek_pos     = 0;
@@ -402,13 +432,25 @@ void OMX_MediaProcessor::mediaDecoding()
 
             m_incr = 0;
 
-            if(m_omx_reader.SeekTime(seek_pos, seek_flags, &startpts))
-                FlushStreams(startpts);
+            double startpts;
+            if (m_omx_reader->SeekTime(seek_pos, seek_flags, &startpts))
+                flushStreams(startpts);
 
+#if 0
             m_player_video->Close();
-            if(m_has_video && !m_player_video->Open(m_hints_video, m_av_clock, m_Deinterlace,  m_bMpeg,
-                                                    m_hdmi_clock_sync, m_thread_player, m_display_aspect))
-                goto do_exit;
+            if (m_has_video && !m_player_video->Open(
+                        m_hints_video,
+                        m_av_clock,
+                        textureData,
+                        false,                  /* deinterlace */
+                        m_bMpeg,
+                        ENABLE_HDMI_CLOCK_SYNC,
+                        true,                   /* threaded */
+                        1.0                     /* display aspect, unused */
+                        ))
+                //goto do_exit;
+                break;
+#endif
         }
 #endif
 
@@ -425,7 +467,7 @@ void OMX_MediaProcessor::mediaDecoding()
                    m_player_audio->GetDelay(), m_player_video->GetCached(), m_player_audio->GetCached());
         }
 
-        if (m_omx_reader.IsEof() && !m_omx_pkt) {
+        if (m_omx_reader->IsEof() && !m_omx_pkt) {
             if (!m_player_audio->GetCached() && !m_player_video->GetCached())
                 break;
 
@@ -468,9 +510,9 @@ void OMX_MediaProcessor::mediaDecoding()
         }
 
         if (!m_omx_pkt)
-            m_omx_pkt = m_omx_reader.Read();
+            m_omx_pkt = m_omx_reader->Read();
 
-        if (m_has_video && m_omx_pkt && m_omx_reader.IsActive(OMXSTREAM_VIDEO, m_omx_pkt->stream_index)) {
+        if (m_has_video && m_omx_pkt && m_omx_reader->IsActive(OMXSTREAM_VIDEO, m_omx_pkt->stream_index)) {
             if (m_player_video->AddPacket(m_omx_pkt))
                 m_omx_pkt = NULL;
             else
@@ -512,7 +554,7 @@ void OMX_MediaProcessor::mediaDecoding()
 #endif
         else {
             if (m_omx_pkt) {
-                m_omx_reader.FreePacket(m_omx_pkt);
+                m_omx_reader->FreePacket(m_omx_pkt);
                 m_omx_pkt = NULL;
             }
         }
@@ -534,7 +576,7 @@ void OMX_MediaProcessor::setSpeed(int iSpeed)
     if (iSpeed < OMX_PLAYSPEED_PAUSE)
         return;
 
-    m_omx_reader.SetSpeed(iSpeed);
+    m_omx_reader->SetSpeed(iSpeed);
 
     if (m_av_clock->OMXPlaySpeed() != OMX_PLAYSPEED_PAUSE && iSpeed == OMX_PLAYSPEED_PAUSE)
         m_state = STATE_PAUSED;
@@ -542,6 +584,40 @@ void OMX_MediaProcessor::setSpeed(int iSpeed)
         m_state = STATE_PLAYING;
 
     m_av_clock->OMXSpeed(iSpeed);
+}
+
+/*------------------------------------------------------------------------------
+|    OMX_MediaProcessor::flushStreams
++-----------------------------------------------------------------------------*/
+void OMX_MediaProcessor::flushStreams(double pts)
+{
+    //  if(m_av_clock)
+    //    m_av_clock->OMXPause();
+
+    if (m_has_video)
+        m_player_video->Flush();
+
+    if (m_has_audio)
+        m_player_audio->Flush();
+
+#ifdef ENABLE_SUBTITLES
+    if (m_has_subtitle)
+        m_player_subtitles->Flush();
+#endif
+
+    if (m_omx_pkt) {
+        m_omx_reader->FreePacket(m_omx_pkt);
+        m_omx_pkt = NULL;
+    }
+
+    if (pts != DVD_NOPTS_VALUE)
+        m_av_clock->OMXUpdateClock(pts);
+
+    //  if(m_av_clock)
+    //  {
+    //    m_av_clock->OMXReset();
+    //    m_av_clock->OMXResume();
+    //  }
 }
 
 /*------------------------------------------------------------------------------
@@ -599,12 +675,12 @@ void OMX_MediaProcessor::cleanup()
     m_player_audio->Close();
 
     if (m_omx_pkt) {
-        m_omx_reader.FreePacket(m_omx_pkt);
+        m_omx_reader->FreePacket(m_omx_pkt);
         m_omx_pkt = NULL;
     }
 
     LOG_VERBOSE(LOG_TAG, "Closing players...");
-    m_omx_reader.Close();
+    m_omx_reader->Close();
 
     vc_tv_show_info(0);
 
@@ -635,4 +711,11 @@ void OMX_MediaProcessor::cleanup()
     }
     m_mutexPending.unlock();
     LOG_INFORMATION(LOG_TAG, "Cleanup done.");
+}
+
+/*------------------------------------------------------------------------------
+|    OMX_MediaProcessor::streamLength
++-----------------------------------------------------------------------------*/
+long OMX_MediaProcessor::streamLength() {
+    return m_omx_reader->GetStreamLength();
 }

@@ -39,6 +39,8 @@ class OMX_MediaProcessorElement : public QQuickItem
 {
     Q_OBJECT
     Q_PROPERTY(QString source READ source WRITE setSource NOTIFY sourceChanged)
+    Q_PROPERTY(long streamLength READ streamLength)
+    Q_PROPERTY(long streamPosition READ streamPosition)
     Q_PROPERTY(bool autoplay READ autoplay WRITE setAutoplay)
     Q_PROPERTY(int volume READ volume WRITE setVolume)
 public:
@@ -59,9 +61,11 @@ public slots:
     Q_INVOKABLE bool play();
     Q_INVOKABLE bool stop();
     Q_INVOKABLE bool pause();
-    Q_INVOKABLE bool seek(long millis);
-    Q_INVOKABLE long currentPosition();
+    Q_INVOKABLE bool seek(long position);
     Q_INVOKABLE bool setVolume(long volume);
+
+    Q_INVOKABLE long streamLength();
+    Q_INVOKABLE long streamPosition();
 
 signals:
     void textureReady(const OMX_TextureData* textureId);
@@ -87,5 +91,23 @@ private slots:
     void instantiateMediaProcessor();
     bool openMedia(QString filepath);
 };
+
+/*------------------------------------------------------------------------------
+|    OMX_MediaProcessorElement::streamLength
++-----------------------------------------------------------------------------*/
+inline long OMX_MediaProcessorElement::streamLength() {
+    if (m_mediaProc)
+        return m_mediaProc->streamLength();
+    return -1;
+}
+
+/*------------------------------------------------------------------------------
+|    OMX_MediaProcessorElement::streamPosition
++-----------------------------------------------------------------------------*/
+inline long OMX_MediaProcessorElement::streamPosition() {
+    if (m_mediaProc)
+        return m_mediaProc->streamPosition();
+    return -1;
+}
 
 #endif // OMX_MEDIAPROCESSORELEMENT_H
