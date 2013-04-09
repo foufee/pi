@@ -5,6 +5,7 @@
 #
 
 QT += core core-private gui gui-private opengl quick quick-private
+DEFINES = CONFIG_LIB
 
 TARGET   = PiOmxTextures
 contains(DEFINES, CONFIG_LIB) {

@@ -27,13 +27,13 @@ fi
 
 cd ffmpeg
 git clone git://source.ffmpeg.org/ffmpeg.git ffmpeg_src
+cd ffmpeg_src
 git checkout master
 git checkout 8c51ea54897c2d8671b38efecc1422ad4ad344f9
-cd ffmpeg_src
 
 echo "Configuring..."
 FLOAT=hard
-export PATH=$PATH:/opt/rpi/gcc-linaro-arm-linux-gnueabihf-raspbian/bin/
+export PATH=$PATH:~/opt/arm-linux-gnueabihf-osx/bin/
 echo "Prefix to $PWD..."
 ./configure \
    --extra-cflags="-mfpu=vfp -mfloat-abi=$FLOAT -mno-apcs-stack-check -mstructure-size-boundary=32 -mno-sched-prolog" \

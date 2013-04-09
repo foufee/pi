@@ -42,7 +42,6 @@
 
 #include <assert.h>
 
-#include "omx_textureproviderqquickitem.h"
 #include "omx_texture.h"
 #include "omx_qthread.h"
 #include "lgl_logging.h"

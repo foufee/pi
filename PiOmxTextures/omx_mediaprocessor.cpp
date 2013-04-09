@@ -237,7 +237,7 @@ bool OMX_MediaProcessor::setFilename(QString filename, OMX_TextureData*& texture
                     *m_hints_audio,
                     m_av_clock,
                     m_omx_reader,
-                    "omx:analog",         /* TODO: implement way to change */
+                    "omx:local",         /* TODO: implement way to change */
                     false,              /* TODO: passthrough */
                     0,                  /* TODO: initial_volume */
                     false,              /* TODO: hw decode */
@@ -718,4 +718,11 @@ void OMX_MediaProcessor::cleanup()
 +-----------------------------------------------------------------------------*/
 long OMX_MediaProcessor::streamLength() {
     return m_omx_reader->GetStreamLength();
+}
+
+/*------------------------------------------------------------------------------
+|    OMX_MediaProcessor::volume
++-----------------------------------------------------------------------------*/
+long OMX_MediaProcessor::volume() {
+    return m_player_audio->GetCurrentVolume();
 }

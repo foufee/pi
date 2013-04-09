@@ -109,7 +109,7 @@ public:
 
     OMX_MediaProcessorState state();
 
-    long volume() { return m_player_audio->GetCurrentVolume(); }
+    long volume();
 
 public slots:
     bool play();
