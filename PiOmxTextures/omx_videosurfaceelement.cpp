@@ -85,13 +85,13 @@ QSGNode* OMX_VideoSurfaceElement::updatePaintNode(QSGNode* oldNode, UpdatePaintN
 
     if (!oldNode) {
         // Create the node.
-        node = new QSGGeometryNode;
+        node = new QSGGeometryNode();
+        node->setFlag(QSGNode::OwnsMaterial);
         geometry = new QSGGeometry(QSGGeometry::defaultAttributes_TexturedPoint2D(), 4);
         geometry->setDrawingMode(GL_TRIANGLE_STRIP);
         node->setGeometry(geometry);
         node->setFlag(QSGNode::OwnsGeometry);
 
-        // TODO: Who is freeing the material?
         QSGOpaqueTextureMaterial* material = new QSGOpaqueTextureMaterial;
         material->setTexture(m_sgtexture);
         node->setMaterial(material);
@@ -189,6 +189,7 @@ void OMX_VideoSurfaceElement::onTextureInvalidated()
     LOG_VERBOSE(LOG_TAG, "Texture was invalidated. Switching to 0.");
 
     QMutexLocker locker(&m_mutexTexture);
+
     m_textureId   = 0;
     m_textureSize = QSize(0, 0);
 }
