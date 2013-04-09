@@ -98,16 +98,16 @@ OMX_ERRORTYPE fill_buffer_done_callback(OMX_HANDLETYPE handle, OMX_PTR pAppData,
  */
 COMXVideo::COMXVideo(OMX_TextureProvider* provider)
 {
-    m_is_open           = false;
-    m_Pause             = false;
-    m_setStartTime      = true;
-    m_setStartTimeText  = true;
-    m_extradata         = NULL;
-    m_extrasize         = 0;
-    m_video_codec_name  = "";
-    m_deinterlace       = false;
-    m_hdmi_clock_sync   = false;
-    m_first_text        = true;
+  m_is_open           = false;
+  m_Pause             = false;
+  m_setStartTime      = true;
+  m_setStartTimeText  = true;
+  m_extradata         = NULL;
+  m_extrasize         = 0;
+  m_video_codec_name  = "";
+  m_deinterlace       = false;
+  m_hdmi_clock_sync   = false;
+  m_first_text        = true;
     m_provider          = provider;
 }
 
@@ -169,7 +169,8 @@ bool COMXVideo::NaluFormatStartCodes(enum CodecID codec, uint8_t *in_extradata, 
   return false;    
 }
 
-bool COMXVideo::Open(COMXStreamInfo &hints, OMXClock *clock, OMX_TextureData*& textureData, float display_aspect, bool deinterlace, bool hdmi_clock_sync)
+//bool COMXVideo::Open(COMXStreamInfo &hints, OMXClock *clock, const CRect &DestRect, float display_aspect, bool deinterlace, bool hdmi_clock_sync, float fifo_size)
+bool COMXVideo::Open(COMXStreamInfo &hints, OMXClock *clock, OMX_TextureData*& textureData, float display_aspect, bool deinterlace, bool hdmi_clock_sync, float fifo_size)
 {
   OMX_ERRORTYPE omx_err   = OMX_ErrorNone;
   std::string decoder_name;
@@ -391,8 +392,7 @@ bool COMXVideo::Open(COMXStreamInfo &hints, OMXClock *clock, OMX_TextureData*& t
   omx_err = m_omx_decoder.SetParameter(OMX_IndexParamVideoPortFormat, &formatType);
   if(omx_err != OMX_ErrorNone)
     return false;
-
-  // lcarlon: this is needed for the port settings changed event.
+  
   OMX_PARAM_PORTDEFINITIONTYPE portParam;
   OMX_INIT_STRUCTURE(portParam);
   portParam.nPortIndex = m_omx_decoder.GetInputPort();
@@ -405,7 +405,7 @@ bool COMXVideo::Open(COMXStreamInfo &hints, OMXClock *clock, OMX_TextureData*& t
   }
 
   portParam.nPortIndex = m_omx_decoder.GetInputPort();
-  portParam.nBufferCountActual = VIDEO_BUFFERS;
+  portParam.nBufferCountActual = fifo_size ? fifo_size * 1024 * 1024 / portParam.nBufferSize : 80;
 
   portParam.format.video.nFrameWidth  = m_decoded_width;
   portParam.format.video.nFrameHeight = m_decoded_height;
@@ -494,6 +494,7 @@ bool COMXVideo::Open(COMXStreamInfo &hints, OMXClock *clock, OMX_TextureData*& t
       return false;
     }
   }
+  SetVideoRect(m_src_rect, m_dst_rect);
 
   // Alloc buffers for the omx intput port.
   omx_err = m_omx_decoder.AllocInputBuffers();
@@ -688,12 +689,12 @@ bool COMXVideo::Open(COMXStreamInfo &hints, OMXClock *clock, OMX_TextureData*& t
         CLog::Log(LOGERROR, "Failed to set port definition for renderer output port.");
 
     // lcarlon: might it be better to do this in the port settings changed event?
-    omx_err = m_omx_render.SetStateForComponent(OMX_StateExecuting);
-    if (omx_err != OMX_ErrorNone)
-    {
-        CLog::Log(LOGERROR, "COMXVideo::Open error m_omx_render.SetStateForComponent\n");
-        return false;
-    }
+  omx_err = m_omx_render.SetStateForComponent(OMX_StateExecuting);
+  if (omx_err != OMX_ErrorNone)
+  {
+    CLog::Log(LOGERROR, "COMXVideo::Open error m_omx_render.SetStateForComponent\n");
+    return false;
+  }
 
     m_omx_decoder.EnablePort(m_omx_decoder.GetOutputPort(), false);
     //m_omx_image_fx.EnablePort(m_omx_image_fx.GetOutputPort(), false);

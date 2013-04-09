@@ -57,14 +57,8 @@ public:
   // Required overrides
   bool SendDecoderConfig();
   bool NaluFormatStartCodes(enum CodecID codec, uint8_t *in_extradata, int in_extrasize);
-  bool Open(
-          COMXStreamInfo &hints,
-          OMXClock *clock,
-          OMX_TextureData*& textureId,
-          float display_aspect = 0.0f,
-          bool deinterlace = false,
-          bool hdmi_clock_sync = false
-          );
+  //bool Open(COMXStreamInfo &hints, OMXClock *clock, const CRect &m_DestRect, float display_aspect = 0.0f, bool deinterlace = false, bool hdmi_clock_sync = false, float fifo_size = 0.0f);
+  bool Open(COMXStreamInfo &hints, OMXClock *clock, OMX_TextureData*& textureId, float display_aspect = 0.0f, bool deinterlace = false, bool hdmi_clock_sync = false, float fifo_size = 0.0f);
   void Close(void);
   unsigned int GetFreeSpace();
   unsigned int GetSize();
@@ -118,6 +112,8 @@ protected:
   bool              m_deinterlace;
   bool              m_hdmi_clock_sync;
   bool              m_first_text;
+  CRect             m_dst_rect;
+  CRect             m_src_rect;
   OMX_TextureProvider* m_provider;
   OMX_BUFFERHEADERTYPE* m_eglBuffer;
 };

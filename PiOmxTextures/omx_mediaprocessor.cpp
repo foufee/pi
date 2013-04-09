@@ -207,7 +207,9 @@ bool OMX_MediaProcessor::setFilename(QString filename, OMX_TextureData*& texture
                     m_bMpeg,
                     ENABLE_HDMI_CLOCK_SYNC,
                     true,                   /* threaded */
-                    1.0                     /* display aspect, unused */
+                    1.0,                    /* display aspect, unused */
+                    0.0f,                   /* default queue size */
+                    0.0f                    /* default fifo */
                     ))
             return false;
 
@@ -237,12 +239,14 @@ bool OMX_MediaProcessor::setFilename(QString filename, OMX_TextureData*& texture
                     *m_hints_audio,
                     m_av_clock,
                     m_omx_reader,
-                    "omx:local",         /* TODO: implement way to change */
+                    "omx:local",        /* TODO: implement way to change */
                     false,              /* TODO: passthrough */
                     0,                  /* TODO: initial_volume */
                     false,              /* TODO: hw decode */
                     false,              /* TODO: downmix boost */
-                    true                /* threaded */
+                    true,               /* threaded */
+                    0.0f,               /* use default queue size */
+                    0.0f                /* use default fifo size */
                     ))
             return false;
 
@@ -480,33 +484,34 @@ void OMX_MediaProcessor::mediaDecoding()
         }
 
         /* when the audio buffer runs under 0.1 seconds we buffer up */
-        if (m_has_audio) {
-            if (m_player_audio->GetDelay() < 0.1f && !m_buffer_empty) {
-                if (!m_av_clock->OMXIsPaused()) {
+        float audio_fifo_size = 0.0;
+        if(m_has_audio)
+        {
+            if(m_player_audio->GetDelay() < min(0.1f, 0.1f*(audio_fifo_size ? 2.0f:audio_fifo_size)))
+            {
+                if(!m_av_clock->OMXIsPaused())
+                {
                     m_av_clock->OMXPause();
-
-                    LOG_VERBOSE(LOG_TAG, "Buffering starts.");
-                    m_buffer_empty = true;
                     clock_gettime(CLOCK_REALTIME, &starttime);
                 }
             }
-            if (m_player_audio->GetDelay() > (AUDIO_BUFFER_SECONDS * 0.75f) && m_buffer_empty) {
-                if (m_av_clock->OMXIsPaused()) {
+            if(m_player_audio->GetDelay() > m_player_audio->GetCacheTotal() * 0.75f)
+            {
+                if(m_av_clock->OMXIsPaused())
+                {
                     m_av_clock->OMXResume();
-
-                    LOG_VERBOSE(LOG_TAG, "Buffering ends.");
-                    m_buffer_empty = false;
                 }
             }
-
-            if (m_buffer_empty) {
+#if 1 // not sure this happens
+            if(m_av_clock->OMXIsPaused())
+            {
                 clock_gettime(CLOCK_REALTIME, &endtime);
-                if ((endtime.tv_sec - starttime.tv_sec) > BUFFERING_TIMEOUT_S) {
-                    m_buffer_empty = false;
+                if((endtime.tv_sec - starttime.tv_sec) > max(2, (int)audio_fifo_size))
+                {
                     m_av_clock->OMXResume();
-                    LOG_WARNING(LOG_TAG, "Buffering timed out.");
                 }
             }
+#endif
         }
 
         if (!m_omx_pkt)
