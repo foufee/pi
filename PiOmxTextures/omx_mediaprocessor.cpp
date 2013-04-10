@@ -671,7 +671,7 @@ void OMX_MediaProcessor::cleanup()
     LOG_VERBOSE(LOG_TAG, "Stopping OMX clock...");
     m_av_clock->OMXStop();
     m_av_clock->OMXStateIdle();
-    m_av_clock->Deinitialize();
+
 
     LOG_VERBOSE(LOG_TAG, "Closing players...");
 #ifdef ENABLE_SUBTITLES
@@ -687,6 +687,7 @@ void OMX_MediaProcessor::cleanup()
 
     LOG_VERBOSE(LOG_TAG, "Closing players...");
     m_omx_reader->Close();
+    m_av_clock->Deinitialize();
 
     vc_tv_show_info(0);
 
