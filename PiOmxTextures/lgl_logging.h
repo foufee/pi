@@ -88,7 +88,7 @@
    __android_log_print(ANDROID_LOG_DEBUG, tag, __VA_ARGS__)
 #define LOG_VERBOSE(tag, ...) \
    __android_log_print(ANDROID_LOG_VERBOSE, tag, __VA_ARGS__)
-#elif defined(__APPLE__)
+#elif defined(__APPLE__) || defined(UNDECORATED_OUTPUT)
 #define LOG_ERROR(tag, ...)      \
    fprintf(stderr, __VA_ARGS__); \
    fprintf(stderr, "\n");        \

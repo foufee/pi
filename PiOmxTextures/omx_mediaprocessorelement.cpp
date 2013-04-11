@@ -165,6 +165,7 @@ void OMX_MediaProcessorElement::instantiateMediaProcessor()
         m_texProvider = new OMX_TextureProviderQQuickItem(this);
     if (!m_mediaProc) {
         m_mediaProc = new OMX_MediaProcessor(m_texProvider);
+        connect(m_mediaProc, SIGNAL(stateChanged()), this, SIGNAL(stateChanged()));
         connect(m_mediaProc, SIGNAL(playbackCompleted()), this, SIGNAL(playbackCompleted()));
         connect(m_mediaProc, SIGNAL(playbackStarted()), this, SIGNAL(playbackStarted()));
         connect(m_mediaProc, SIGNAL(textureInvalidated()), this, SIGNAL(textureInvalidated()));
@@ -188,5 +189,14 @@ bool OMX_MediaProcessorElement::openMedia(QString filepath)
     if (m_autoplay && !play())
         return false;
     return true;
+}
+
+
+OMX_MediaProcessor::OMX_MediaProcessorState OMX_MediaProcessorElement::state()
+{
+    if (m_mediaProc)
+        return m_mediaProc->state();
+    else
+        return OMX_MediaProcessor::STATE_INACTIVE;
 }
 

@@ -255,6 +255,7 @@ bool OMX_MediaProcessor::setFilename(QString filename, OMX_TextureData*& texture
     m_av_clock->OMXStateExecute();
 
     m_state = STATE_STOPPED;
+    emit stateChanged();
     return true;
 }
 
@@ -275,6 +276,7 @@ bool OMX_MediaProcessor::play()
         return false;
     case STATE_PAUSED:
         m_state = STATE_PLAYING;
+        emit stateChanged();
         setSpeed(OMX_PLAYSPEED_NORMAL);
         m_av_clock->OMXResume();
         return true;
@@ -283,6 +285,7 @@ bool OMX_MediaProcessor::play()
     case STATE_STOPPED: {
         LOG_VERBOSE(LOG_TAG, "Starting thread.");
         m_state = STATE_PLAYING;
+        emit stateChanged();
         m_av_clock->OMXStart(0.0);
         return QMetaObject::invokeMethod(this, "mediaDecoding");
     }
@@ -314,6 +317,7 @@ bool OMX_MediaProcessor::stop()
 
     m_pendingStop = true;
     m_state = STATE_STOPPED;
+    emit stateChanged();
 
     // Wait for command completion.
     m_mutexPending.lock();
@@ -348,6 +352,7 @@ bool OMX_MediaProcessor::pause()
     }
 
     m_state = STATE_PAUSED;
+    emit stateChanged();
     setSpeed(OMX_PLAYSPEED_PAUSE);
     m_av_clock->OMXPause();
 
@@ -565,8 +570,11 @@ void OMX_MediaProcessor::mediaDecoding()
         }
     }
 
-    emit playbackCompleted();
     cleanup();
+    m_state = STATE_INACTIVE;
+    emit stateChanged();
+    emit playbackCompleted();
+
 }
 
 /*------------------------------------------------------------------------------
@@ -584,9 +592,15 @@ void OMX_MediaProcessor::setSpeed(int iSpeed)
     m_omx_reader->SetSpeed(iSpeed);
 
     if (m_av_clock->OMXPlaySpeed() != OMX_PLAYSPEED_PAUSE && iSpeed == OMX_PLAYSPEED_PAUSE)
+    {
         m_state = STATE_PAUSED;
+        emit stateChanged();
+    }
     else if (m_av_clock->OMXPlaySpeed() == OMX_PLAYSPEED_PAUSE && iSpeed != OMX_PLAYSPEED_PAUSE)
+    {
         m_state = STATE_PLAYING;
+        emit stateChanged();
+    }
 
     m_av_clock->OMXSpeed(iSpeed);
 }
@@ -711,6 +725,7 @@ void OMX_MediaProcessor::cleanup()
 
     // Actually change the state here and reset flags.
     m_state = STATE_STOPPED;
+    emit stateChanged();
     m_mutexPending.lock();
     if (m_pendingStop) {
         m_pendingStop = false;
@@ -733,3 +748,4 @@ long OMX_MediaProcessor::streamLength() {
 long OMX_MediaProcessor::volume() {
     return m_player_audio->GetCurrentVolume();
 }
+

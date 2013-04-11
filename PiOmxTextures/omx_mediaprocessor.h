@@ -72,6 +72,7 @@ class COMXStreamInfo;
 class OMX_MediaProcessor : public QObject
 {
     Q_OBJECT
+    Q_ENUMS(OMX_MediaProcessorState)
 public:
     enum OMX_MediaProcessorState {
         STATE_STOPPED,
@@ -124,6 +125,7 @@ signals:
     void textureInvalidated();
     void textureReady(const OMX_TextureData* textureData);
     void errorOccurred(OMX_MediaProcessorError error);
+    void stateChanged();
 
 private slots:
     void mediaDecoding();

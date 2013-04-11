@@ -38,11 +38,13 @@
 class OMX_MediaProcessorElement : public QQuickItem
 {
     Q_OBJECT
+    Q_ENUMS(OMX_MediaProcessor::OMX_MediaProcessorState)
     Q_PROPERTY(QString source READ source WRITE setSource NOTIFY sourceChanged)
     Q_PROPERTY(long streamLength READ streamLength)
     Q_PROPERTY(long streamPosition READ streamPosition)
     Q_PROPERTY(bool autoplay READ autoplay WRITE setAutoplay)
     Q_PROPERTY(int volume READ volume WRITE setVolume)
+    Q_PROPERTY(OMX_MediaProcessor::OMX_MediaProcessorState state READ state NOTIFY stateChanged)
 public:
     explicit OMX_MediaProcessorElement(QQuickItem* parent = 0);
     ~OMX_MediaProcessorElement();
@@ -53,6 +55,7 @@ public:
     bool autoplay();
     void setAutoplay(bool ap);
     int volume();
+    OMX_MediaProcessor::OMX_MediaProcessorState state();
     OMX_MediaProcessor* mediaProcessor() {
         return m_mediaProc;
     }
@@ -74,6 +77,7 @@ signals:
 
     void playbackStarted();
     void playbackCompleted();
+    void stateChanged();
 
 protected:
     QSGNode* updatePaintNode(QSGNode*, UpdatePaintNodeData*);
